@@ -1,0 +1,182 @@
+---
+title: "Wurch1"
+author: "Grace Davenport"
+date: "10/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(data.table)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+
+wurch.v1 = read_excel("C:/Users/daven/OneDrive/Documents/Classes/3.1/MATHBIO/Wurch/Fluorescence and Fv_Fm.xlsx", sheet = "Ex_Clean.v1")
+attach(wurch.v1)
+
+
+```
+
+#Make new datasets
+```{r}
+Only_1984 <- wurch.v1 %>%
+  filter(strain==1984)
+
+Only_1984_1333 <- Only_1984 %>%
+  filter(Treat==1.1 | Treat==2.1 | Treat==3)
+
+Only_1984_Dun <- Only_1984 %>%
+  filter(Treat==1.2 | Treat==2.2| Treat==3)
+
+###
+
+cells_1984_1333 <- wurch.v1 %>%
+  filter(Treat==1.1)
+
+cells_1984_Dun <- wurch.v1 %>%
+  filter(Treat==1.2)
+
+```
+
+#FUNCTION to calculate the mean and SD of new datasets
+```{r}
+data_summary <- function(data, varname, groupnames){
+  require(plyr)
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sd(x[[col]], na.rm=TRUE))
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- plyr::rename(data_sum, c("mean" = varname))
+ return(data_sum)
+}
+```
+
+#Actually calculating the mean and SD of new datasets
+```{r}
+Fv_1984_Treat <- data_summary(Only_1984, varname="Fv", 
+                    groupnames=c("day", "Treat"))
+
+FvFm_1984_Treat <- data_summary(Only_1984, varname="FvFm", 
+                    groupnames=c("day", "Treat"))
+
+Fv_1984_1333 <- data_summary(Only_1984_1333, varname="Fv", 
+                    groupnames=c("day", "Treat"))
+
+Fv_1984_Dun <- data_summary(Only_1984_Dun, varname="Fv", 
+                    groupnames=c("day", "Treat"))
+
+Fv_cells_1984_1333 <- data_summary(cells_1984_1333, 
+                                   varname="Fv", 
+                    groupnames=c("day", "strain"))
+
+Fv_cells_1984_Dun <- data_summary(cells_1984_Dun, 
+                                  varname="Fv",
+                    groupnames=c("day", "strain"))
+
+```
+
+#FUNCTION for line graphs
+```{r}
+myline = function(dataset, x, y){
+  a <- ggplot(dataset, aes(.data[[x]],.data[[y]], 
+                           group=.data[["strain"]],
+                           color=.data[["strain"]])) 
+  
+  a <- a + geom_line()
+  
+  a <- a + geom_point(size=2)
+  
+  a <- a + geom_errorbar(aes(ymin=.data[[y]]-sd, 
+                              ymax=.data[[y]]+sd), width=.1,
+                          position=position_dodge(0.08))
+  
+  a <- a + theme(axis.text = element_text(size=12),axis.title = 
+                   element_text(size=14,face="bold"))
+  
+  a <- a + theme(
+    plot.title = element_text(color="black", size=12, face = 
+                                "bold"),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(), 
+    axis.line = element_line(colour = "black"))
+  
+  return(a)
+}
+```
+
+#Make line graphs
+```{r}
+Fv_1984_Treat$Treat = factor(Fv_1984_Treat$Treat)
+Aur_Fv = myline(Fv_1984_Treat, 'day', 'Fv')
+
+FvFm_1984_Treat$Treat = factor(FvFm_1984_Treat$Treat)
+Aur_FvFm = myline(FvFm_1984_Treat, 'day', 'FvFm')
+
+#####
+
+Fv_1984_1333$Treat = factor(Fv_1984_1333$Treat)
+Aur_Fv_1333 = myline(Fv_1984_1333, 'day', 'Fv')
+
+Fv_1984_Dun$Treat = factor(Fv_1984_Dun$Treat)
+Aur_Fv_Dun = myline(Fv_1984_Dun, 'day', 'Fv')
+
+###
+
+Fv_cells_1984_1333$strain = factor(Fv_cells_1984_1333$strain)
+Cells_Aur_1333 = myline(Fv_cells_1984_1333, 'day', 'Fv')
+
+Fv_cells_1984_Dun$strain = factor(Fv_cells_1984_Dun$strain)
+Cells_Aur_Dun = myline(Fv_cells_1984_Dun, 'day', 'Fv')
+```
+
+#Read in scatterplot data sets
+```{r}
+Aur_Kar.v1 = read_excel("C:/Users/daven/OneDrive/Documents/Classes/3.1/MATHBIO/Wurch/Fluorescence and Fv_Fm.xlsx", sheet = "1984_1333.v1")
+
+Aur_Kar.v2 = read_excel("C:/Users/daven/OneDrive/Documents/Classes/3.1/MATHBIO/Wurch/Fluorescence and Fv_Fm.xlsx", sheet = "1984_1333.v2")
+
+Aur_Dun = read_excel("C:/Users/daven/OneDrive/Documents/Classes/3.1/MATHBIO/Wurch/Fluorescence and Fv_Fm.xlsx", sheet = "1984_Dun")
+```
+
+#Scatterplot function code
+```{r}
+myscat = function(dataset, x, y){
+  a <- ggplot(dataset, aes(.data[[x]],.data[[y]])) 
+  
+  a <- a + theme(panel.grid.major = element_blank(), 
+                 panel.grid.minor = element_blank(),
+                 panel.background = element_blank(), 
+                 axis.line =
+                   element_line(colour = "black"))
+  
+  a <- a + geom_point(size=3)
+  
+  #a <- a + geom_smooth(method=lm, se=FALSE, 
+                       #color="black")
+  
+  a <- a + theme(axis.text = 
+                   element_text(size=12),axis.title = 
+                   element_text(size=14,face="bold"))
+  
+  a <- a + theme(legend.position = "none")
+  return(a)
+}
+```
+
+#Make scatterplots
+```{r}
+Aur_Kar_Graph.v1 = myscat(Aur_Kar.v1, 'Aur', 'Kar')
+
+Aur_Kar_Graph.v2 = myscat(Aur_Kar.v2, 'Aur', 'Kar')
+
+Aur_Dun_Graph = myscat(Aur_Dun, 'Aur', 'Dun')
+```
+
